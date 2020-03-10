@@ -39,9 +39,9 @@ func main() {
 	}
 
 	// define http server and server handler
-	gs := GrumpyServerHandler{}
+	ws := WebHookServer{}
 	mux := http.NewServeMux()
-	mux.HandleFunc("/validate", gs.serve)
+	mux.HandleFunc("/validate", ws.serve)
 	server.Handler = mux
 
 	// start webhook server in new rountine

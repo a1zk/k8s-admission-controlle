@@ -12,6 +12,10 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+var reqLabel = map[string]string{
+	"team": "ops",
+}
+
 //WebHookServer listen to admission requests and serve responses
 type WebHookServer struct {
 }
@@ -48,7 +52,7 @@ func (ws *WebHookServer) serve(w http.ResponseWriter, r *http.Request) {
 		glog.Error("error deserializing pod")
 		return
 	}
-	if pod.Label == "team=ops" {
+	if pod.ObjectMeta.Labels["team"] == reqLabel["team"]{
 		return
 	}
 

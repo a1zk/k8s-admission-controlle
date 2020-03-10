@@ -1,0 +1,47 @@
+apiVersion: apps/v1beta1
+kind: Deployment
+metadata:
+  name: k8s-ac
+  namespace: default
+  labels:
+    name: k8s-ac
+spec:
+  replicas: 1
+  template:
+    metadata:
+      name: k8s-ac 
+      labels:
+        name: k8s-ac
+    spec:
+      containers:
+        - name: webhook
+          image: a1zk/k8s-ac:1.0.0
+          imagePullPolicy: Always
+          args:
+            - -alsologtostderr
+            - --log_dir=/
+            - -v=10
+            - 2>&1
+            - -tlsCertFile=/etc/certs/cert.pem
+            - -tlsKeyFile=/etc/certs/key.pem
+          resources:
+            limits:
+              memory: 50Mi
+              cpu: 300m
+            requests:
+              memory: 00Mi
+              cpu: 300m
+          volumeMounts:
+            - name: webhook-certs
+              mountPath: /etc/certs
+              readOnly: true
+            - name: logs
+              mountPath: /tmp
+          securityContext:
+            readOnlyRootFilesystem: true
+      volumes:
+        - name: webhook-certs
+          secret:
+            secretName: k8s-ac
+        - name: logs
+          emptyDir: {}
