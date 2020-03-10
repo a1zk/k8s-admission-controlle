@@ -13,47 +13,51 @@ import (
 	"github.com/golang/glog"
 )
 
-func main() {
-	var parameters serverConfig
+const (
+	port = "8080"
+)
 
-	// get command line parameters
-	flag.IntVar(&parameters.port, "port", 443, "Webhook server port.")
-	flag.StringVar(&parameters.certFile, "tlsCertFile", "/etc/webhook/certs/cert.pem", "File containing the x509 Certificate for HTTPS.")
-	flag.StringVar(&parameters.keyFile, "tlsKeyFile", "/etc/webhook/certs/key.pem", "File containing the x509 private key to --tlsCertFile.")
+var (
+	tlscert, tlskey string
+)
+
+func main() {
+
+	flag.StringVar(&tlscert, "tlsCertFile", "/etc/certs/cert.pem", "File containing the x509 Certificate for HTTPS.")
+	flag.StringVar(&tlskey, "tlsKeyFile", "/etc/certs/key.pem", "File containing the x509 private key to --tlsCertFile.")
+
 	flag.Parse()
 
-	pair, err := tls.LoadX509KeyPair(parameters.certFile, parameters.keyFile)
+	certs, err := tls.LoadX509KeyPair(tlscert, tlskey)
 	if err != nil {
-		glog.Errorf("Failed to load key pair: %v", err)
+		glog.Errorf("Filed to load key pair: %v", err)
 	}
 
-	srv := &server{
-		server: &http.Server{
-			Addr:      fmt.Sprintf(":%v", parameters.port),
-			TLSConfig: &tls.Config{Certificates: []tls.Certificate{pair}},
-		},
+	server := &http.Server{
+		Addr:      fmt.Sprintf(":%v", port),
+		TLSConfig: &tls.Config{Certificates: []tls.Certificate{certs}},
 	}
 
 	// define http server and server handler
+	gs := GrumpyServerHandler{}
 	mux := http.NewServeMux()
-	mux.HandleFunc("/mutate", srv.serve)
-	mux.HandleFunc("/validate", srv.serve)
-	srv.server.Handler = mux
+	mux.HandleFunc("/validate", gs.serve)
+	server.Handler = mux
 
-	// start webhook server
+	// start webhook server in new rountine
 	go func() {
-		if err := srv.server.ListenAndServeTLS("", ""); err != nil {
+		if err := server.ListenAndServeTLS("", ""); err != nil {
 			glog.Errorf("Failed to listen and serve webhook server: %v", err)
 		}
 	}()
 
-	glog.Info("Server started")
+	glog.Infof("Server running listening in port: %s", port)
 
-	// listening OS shutdown singal
+	// listening shutdown singal
 	signalChan := make(chan os.Signal, 1)
 	signal.Notify(signalChan, syscall.SIGINT, syscall.SIGTERM)
 	<-signalChan
 
-	glog.Infof("Got OS shutdown signal, shutting down webhook server gracefully...")
-	srv.server.Shutdown(context.Background())
+	glog.Info("Got shutdown signal, shutting down webhook server gracefully...")
+	server.Shutdown(context.Background())
 }
