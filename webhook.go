@@ -50,11 +50,11 @@ func createPatch(availableLabel map[string]string, label map[string]string) ([]b
 }
 func (ws *WebHookServer) validate(ar *v1beta1.AdmissionReview) *v1beta1.AdmissionResponse{
 
+	fmt.Println("Validation ar ===> ",ar)
 	raw := ar.Request.Object.Raw
 
-	fmt.Println("Validation ===> ",raw)
-
 	pod := v1.Pod{}
+	fmt.Println("Validation pod ===> ",pod)
 	deployment :=appsv1.Deployment{}
 	if err := json.Unmarshal(raw, &pod); err != nil {
 		glog.Error("error deserializing pods")
