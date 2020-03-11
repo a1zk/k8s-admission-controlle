@@ -155,11 +155,11 @@ func (ws *WebHookServer) serve(w http.ResponseWriter, r *http.Request){
 	glog.Info("Received request")
 	}
 
-	if (r.URL.Path != "/validate" || r.URL.Path != "/mutate" ) {
-		glog.Error("no validate or no mutate")
-		http.Error(w, "no validate or no mutate", http.StatusBadRequest)
-		return
-	}
+	// if (r.URL.Path != "/validate" || r.URL.Path != "/mutate" ) {
+	// 	glog.Error("no validate or no mutate")
+	// 	http.Error(w, "no validate or no mutate", http.StatusBadRequest)
+	// 	return
+	// }
 
 	var admResponse *v1beta1.AdmissionResponse
 	arRequest := v1beta1.AdmissionReview{}
