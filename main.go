@@ -41,6 +41,7 @@ func main() {
 	// define http server and server handler
 	ws := WebHookServer{}
 	mux := http.NewServeMux()
+	mux.HandleFunc("/mutate", ws.serve)
 	mux.HandleFunc("/validate", ws.serve)
 	server.Handler = mux
 

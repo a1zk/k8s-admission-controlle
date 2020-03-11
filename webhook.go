@@ -21,7 +21,127 @@ var reqLabel = map[string]string{
 type WebHookServer struct {
 }
 
-func (ws *WebHookServer) serve(w http.ResponseWriter, r *http.Request) {
+type patchOperation struct {
+	Op    string      `json:"op"`
+	Path  string      `json:"path"`
+	Value interface{} `json:"value,omitempty"`
+}
+
+func updLabel(target map[string]string, added map[string]string) (patch []patchOperation) {
+	values := make(map[string]string)
+	for key, value := range added {
+		if target == nil || target[key] == "" {
+			values[key] = value
+		}
+	}
+	patch = append(patch, patchOperation{
+		Op:    "add",
+		Path:  "/metadata/labels",
+		Value: values,
+	})
+	return patch
+}
+func createPatch(availableLabel map[string]string, label map[string]string) ([]byte, error) {
+	var patch []patchOperation
+
+	patch = append(patch, updLabel(availableLabel, label)...)
+
+	return json.Marshal(patch)
+}
+func (ws *WebHookServer) validate(ar *v1beta1.AdmissionReview) *v1beta1.AdmissionResponse{
+
+	raw := ar.Request.Object.Raw
+	pod := v1.Pod{}
+	deployment :=appsv1.Deployment{}
+	if err := json.Unmarshal(raw, &pod); err != nil {
+		glog.Error("error deserializing pods")
+		return &v1beta1.AdmissionResponse{
+			Result: &metav1.Status{
+				Message: err.Error(),
+			},
+		}
+		
+	}
+	if err := json.Unmarshal(raw, &deployment); err != nil {
+		glog.Error("error deserializing deployments")
+		return &v1beta1.AdmissionResponse{
+			Result: &metav1.Status{
+				Message: err.Error(),
+			},
+		} 
+	}
+	if (pod.ObjectMeta.Labels["team"] == reqLabel["team"] || deployment.Labels["team"] == reqLabel["team"]){
+		return &v1beta1.AdmissionResponse{
+			Allowed: true,
+		}
+	}
+
+	return &v1beta1.AdmissionResponse{
+			Allowed: false,
+			Result: &metav1.Status{
+				Message: "This label 'team' is not allowed !",
+			},
+		}
+}
+
+func (ws *WebHookServer) mutate(ar *v1beta1.AdmissionReview) *v1beta1.AdmissionResponse{
+
+	raw := ar.Request.Object.Raw
+	pod := v1.Pod{}
+	deployment :=appsv1.Deployment{}
+	if err := json.Unmarshal(raw, &pod); err != nil {
+		glog.Error("error deserializing pod")
+		return &v1beta1.AdmissionResponse{
+			Result: &metav1.Status{
+				Message: err.Error(),
+			},
+		} 
+	}
+	if err := json.Unmarshal(raw, &deployment); err != nil {
+		return &v1beta1.AdmissionResponse{
+			Result: &metav1.Status{
+				Message: err.Error(),
+			},
+		} 
+	}
+	pl := pod.ObjectMeta.Labels
+	dl := deployment.Labels
+	plBytes, err := createPatch(pl, reqLabel)
+	if err != nil {
+		return &v1beta1.AdmissionResponse{
+		Result: &metav1.Status{
+		Message: err.Error(),
+			},
+		}
+	}
+	dlBytes, err := createPatch(dl, reqLabel)
+	if err != nil {
+		return &v1beta1.AdmissionResponse{
+		Result: &metav1.Status{
+		Message: err.Error(),
+			},
+		}
+	}
+	return &v1beta1.AdmissionResponse{
+		Allowed: true,
+		Patch:   plBytes,
+		PatchType: func() *v1beta1.PatchType {
+		  pt := v1beta1.PatchTypeJSONPatch
+		  return &pt
+		}(),
+	}
+	return &v1beta1.AdmissionResponse{
+		Allowed: true,
+		Patch:   dlBytes,
+		PatchType: func() *v1beta1.PatchType {
+		  pt := v1beta1.PatchTypeJSONPatch
+		  return &pt
+		}(),
+	}
+
+}
+
+func (ws *WebHookServer) serve(w http.ResponseWriter, r *http.Request){
 	var body []byte
 	if r.Body != nil {
 		if data, err := ioutil.ReadAll(r.Body); err == nil {
@@ -32,48 +152,54 @@ func (ws *WebHookServer) serve(w http.ResponseWriter, r *http.Request) {
 		glog.Error("empty body")
 		http.Error(w, "empty body", http.StatusBadRequest)
 		return
-	}
 	glog.Info("Received request")
+	}
 
-	if r.URL.Path != "/validate" {
-		glog.Error("no validate")
-		http.Error(w, "no validate", http.StatusBadRequest)
+	if (r.URL.Path != "/validate" || r.URL.Path != "/mutate" ) {
+		glog.Error("no validate or no mutate")
+		http.Error(w, "no validate or no mutate", http.StatusBadRequest)
 		return
 	}
 
+	var admResponse *v1beta1.AdmissionResponse
 	arRequest := v1beta1.AdmissionReview{}
 	if err := json.Unmarshal(body, &arRequest); err != nil {
 		glog.Error("incorrect body")
 		http.Error(w, "incorrect body", http.StatusBadRequest)
 	}
-
-	raw := arRequest.Request.Object.Raw
-	pod := v1.Pod{}
-	deployment :=appsv1.Deployment{}
-	if err := json.Unmarshal(raw, &pod); err != nil {
-		glog.Error("error deserializing pod")
-		return
-	}
-	if err := json.Unmarshal(raw, &deployment); err != nil {
-		glog.Error("error deserializing pod")
-		return
-	}
-	if pod.ObjectMeta.Labels["team"] == reqLabel["team"]{
-		return
-	}
-	if deployment.ObjectMeta.Labels["team"] == reqLabel["team"]{
-		return
+	if r.URL.Path == "/mutate" {
+		admResponse = ws.mutate(&arRequest)
+	} else if r.URL.Path == "/validate" {
+		admResponse = ws.validate(&arRequest)
 	}
 
-	arResponse := v1beta1.AdmissionReview{
-		Response: &v1beta1.AdmissionResponse{
-			Allowed: false,
-			Result: &metav1.Status{
-				Message: "This label 'team' is not allowed !",
-			},
-		},
-	}
-	resp, err := json.Marshal(arResponse)
+	//raw := arRequest.Request.Object.Raw
+	//pod := v1.Pod{}
+	// deployment :=appsv1.Deployment{}
+	// // if err := json.Unmarshal(raw, &pod); err != nil {
+	// 	glog.Error("error deserializing pod")
+	// 	return
+	// }
+	// if err := json.Unmarshal(raw, &deployment); err != nil {
+	// 	glog.Error("error deserializing pod")
+	// 	return
+	// }
+	// if pod.ObjectMeta.Labels["team"] == reqLabel["team"]{
+	// 	return
+	// }
+	// if deployment.Labels["team"] == reqLabel["team"]{
+	// 	return
+	// }
+
+	// arResponse := v1beta1.AdmissionReview{
+	// 	Response: &v1beta1.AdmissionResponse{
+	// 		Allowed: false,
+	// 		Result: &metav1.Status{
+	// 			Message: "This label 'team' is not allowed !",
+	// 		},
+	// 	},
+	// }
+	resp, err := json.Marshal(admResponse)
 	if err != nil {
 		glog.Errorf("Can't encode response: %v", err)
 		http.Error(w, fmt.Sprintf("could not encode response: %v", err), http.StatusInternalServerError)
