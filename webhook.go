@@ -112,9 +112,10 @@ func (ws *WebHookServer) mutate(ar *v1beta1.AdmissionReview) *v1beta1.AdmissionR
 		} 
 	}
 	pl := pod.ObjectMeta.Labels
-	fmt.Println("Pod labels Mutation", pl)
 	dl := deployment.Labels
-	fmt.Println("Deployment labels Mutation", dl)
+	if pl != nil || dl != nil {
+		ws.validate(ar)
+	}
 	plBytes, err := createPatch(pl, reqLabel)
 	if err != nil {
 		return &v1beta1.AdmissionResponse{
