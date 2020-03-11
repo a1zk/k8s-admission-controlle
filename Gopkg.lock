@@ -73,10 +73,11 @@
   version = "v0.9.1"
 
 [[projects]]
-  digest = "1:ea0dae50cd1991872b940aec752319d76ca59bf858766414a589cc6ccaba6397"
+  digest = "1:d0002bb70a721c5951a7f0001b117d11b3ea9a71eb4bdc26e4ea3f1559cd1e6b"
   name = "k8s.io/api"
   packages = [
     "admission/v1beta1",
+    "apps/v1",
     "authentication/v1",
     "core/v1",
   ]
@@ -128,6 +129,7 @@
   input-imports = [
     "github.com/golang/glog",
     "k8s.io/api/admission/v1beta1",
+    "k8s.io/api/apps/v1",
     "k8s.io/api/core/v1",
     "k8s.io/apimachinery/pkg/apis/meta/v1",
   ]

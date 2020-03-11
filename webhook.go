@@ -10,6 +10,7 @@ import (
 	"k8s.io/api/admission/v1beta1"
 	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	appsv1 "k8s.io/api/apps/v1"
 )
 
 var reqLabel = map[string]string{
@@ -48,11 +49,19 @@ func (ws *WebHookServer) serve(w http.ResponseWriter, r *http.Request) {
 
 	raw := arRequest.Request.Object.Raw
 	pod := v1.Pod{}
+	deployment :=appsv1.Deployment{}
 	if err := json.Unmarshal(raw, &pod); err != nil {
 		glog.Error("error deserializing pod")
 		return
 	}
+	if err := json.Unmarshal(raw, &deployment); err != nil {
+		glog.Error("error deserializing pod")
+		return
+	}
 	if pod.ObjectMeta.Labels["team"] == reqLabel["team"]{
+		return
+	}
+	if deployment.ObjectMeta.Labels["team"] == reqLabel["team"]{
 		return
 	}
 
@@ -60,7 +69,7 @@ func (ws *WebHookServer) serve(w http.ResponseWriter, r *http.Request) {
 		Response: &v1beta1.AdmissionResponse{
 			Allowed: false,
 			Result: &metav1.Status{
-				Message: "Keep calm and not add more crap in the cluster!",
+				Message: "This label 'team' is not allowed !",
 			},
 		},
 	}

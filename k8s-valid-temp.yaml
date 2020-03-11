@@ -4,10 +4,10 @@ kind: ValidatingWebhookConfiguration
 metadata:
   name: k8s-ac
 webhooks:
-  - name: k8s-ac-valid
+  - name: k8s.ac.valid
     clientConfig:
       service:
-        name: k8s-ac
+        name: k8s-ac-svc
         namespace: default
         path: "/validate"
       caBundle: "${CA_BUNDLE}"
