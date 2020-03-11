@@ -51,6 +51,9 @@ func createPatch(availableLabel map[string]string, label map[string]string) ([]b
 func (ws *WebHookServer) validate(ar *v1beta1.AdmissionReview) *v1beta1.AdmissionResponse{
 
 	raw := ar.Request.Object.Raw
+
+	fmt.Println("Validation ===> ",raw)
+
 	pod := v1.Pod{}
 	deployment :=appsv1.Deployment{}
 	if err := json.Unmarshal(raw, &pod); err != nil {
@@ -70,13 +73,11 @@ func (ws *WebHookServer) validate(ar *v1beta1.AdmissionReview) *v1beta1.Admissio
 			},
 		} 
 	}
-	fmt.Println("Pod labels",pod.ObjectMeta.Labels)
 	if pod.ObjectMeta.Labels["team"] == reqLabel["team"]{
 		return &v1beta1.AdmissionResponse{
 			Allowed: true,
 		}
 	}
-	fmt.Println("Deployment labels :",deployment.Labels)
 	if deployment.Labels["team"] == reqLabel["team"]{
 		return &v1beta1.AdmissionResponse{
 			Allowed: true,
