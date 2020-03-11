@@ -14,7 +14,7 @@ import (
 )
 
 var reqLabel = map[string]string{
-	"team": "ops",
+	 "team": "ops",
 }
 
 //WebHookServer listen to admission requests and serve responses
@@ -70,11 +70,13 @@ func (ws *WebHookServer) validate(ar *v1beta1.AdmissionReview) *v1beta1.Admissio
 			},
 		} 
 	}
+	fmt.Println("Pod labels",pod.ObjectMeta.Labels)
 	if pod.ObjectMeta.Labels["team"] == reqLabel["team"]{
 		return &v1beta1.AdmissionResponse{
 			Allowed: true,
 		}
 	}
+	fmt.Println("Deployment labels :",deployment.Labels)
 	if deployment.Labels["team"] == reqLabel["team"]{
 		return &v1beta1.AdmissionResponse{
 			Allowed: true,
@@ -159,12 +161,6 @@ func (ws *WebHookServer) serve(w http.ResponseWriter, r *http.Request){
 		return
 	glog.Info("Received request")
 	}
-
-	// if (r.URL.Path != "/validate" || r.URL.Path != "/mutate" ) {
-	// 	glog.Error("no validate or no mutate")
-	// 	http.Error(w, "no validate or no mutate", http.StatusBadRequest)
-	// 	return
-	// }
 
 	var admResponse *v1beta1.AdmissionResponse
 	arRequest := v1beta1.AdmissionReview{}
