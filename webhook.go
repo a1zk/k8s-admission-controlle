@@ -167,6 +167,7 @@ func (ws *WebHookServer) serve(w http.ResponseWriter, r *http.Request){
 		glog.Error("incorrect body")
 		http.Error(w, "incorrect body", http.StatusBadRequest)
 	}
+	fmt.Println(r.URL.Path)
 	if r.URL.Path == "/mutate" {
 		admResponse = ws.mutate(&arRequest)
 	} else if r.URL.Path == "/validate" {
@@ -199,7 +200,14 @@ func (ws *WebHookServer) serve(w http.ResponseWriter, r *http.Request){
 	// 		},
 	// 	},
 	// }
-	resp, err := json.Marshal(admResponse)
+	admReview := v1beta1.AdmissionReview{}
+	if admResponse != nil {
+		admReview.Response = admResponse
+		if arRequest.Request != nil {
+			admReview.Response.UID = arRequest.Request.UID
+		}
+	}
+	resp, err := json.Marshal(admReview)
 	if err != nil {
 		glog.Errorf("Can't encode response: %v", err)
 		http.Error(w, fmt.Sprintf("could not encode response: %v", err), http.StatusInternalServerError)
