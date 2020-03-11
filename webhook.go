@@ -50,11 +50,8 @@ func createPatch(availableLabel map[string]string, label map[string]string) ([]b
 }
 func (ws *WebHookServer) validate(ar *v1beta1.AdmissionReview) *v1beta1.AdmissionResponse{
 
-	fmt.Println("Validation ar ===> ",ar)
 	raw := ar.Request.Object.Raw
-
 	pod := v1.Pod{}
-	fmt.Println("Validation pod ===> ",pod)
 	deployment :=appsv1.Deployment{}
 	if err := json.Unmarshal(raw, &pod); err != nil {
 		glog.Error("error deserializing pods")
@@ -114,9 +111,6 @@ func (ws *WebHookServer) mutate(ar *v1beta1.AdmissionReview) *v1beta1.AdmissionR
 	}
 	pl := pod.ObjectMeta.Labels
 	dl := deployment.Labels
-	if pl != nil || dl != nil {
-		ws.validate(ar)
-	}
 	plBytes, err := createPatch(pl, reqLabel)
 	if err != nil {
 		return &v1beta1.AdmissionResponse{
@@ -175,7 +169,8 @@ func (ws *WebHookServer) serve(w http.ResponseWriter, r *http.Request){
 	fmt.Println(r.URL.Path)
 	if r.URL.Path == "/mutate" {
 		admResponse = ws.mutate(&arRequest)
-	} else if r.URL.Path == "/validate" {
+	}
+	if r.URL.Path == "/validate" {
 		admResponse = ws.validate(&arRequest)
 	}
 
