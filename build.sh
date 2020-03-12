@@ -22,6 +22,8 @@ echo -e "\e[32mDeploy AC to K8S\e[0m"
 echo " ==================================== "
 export CA_BUNDLE=$(kubectl config view --raw -o json|jq -r '.clusters[0].cluster."certificate-authority"'|xargs cat|base64|tr -d '\n')
 cat k8s-valid-temp.yaml|envsubst>validation.yaml
+#cat k8s-valid-temp.yaml|envsubst>mutation.yaml
 kubect apply -f validation.yaml
 kubect apply -f k8s-deployment.yaml
 kubect apply -f k8s-svc.yaml
+kubect apply -f mutation.yaml
