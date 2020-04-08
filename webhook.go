@@ -176,6 +176,7 @@ func (ws *WebHookServer) serve(w http.ResponseWriter, r *http.Request) {
 	fmt.Println(r.URL.Path)
 	if r.URL.Path == "/mutate" {
 		admResponse = ws.mutate(&arRequest)
+		fmt.Println(admResponse.Result)
 	}
 	if r.URL.Path == "/validate" {
 		admResponse = ws.validate(&arRequest)
