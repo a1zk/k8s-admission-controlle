@@ -95,6 +95,9 @@ func (ws *WebHookServer) mutate(ar *v1beta1.AdmissionReview) *v1beta1.AdmissionR
 	pod := v1.Pod{}
 	deployment := appsv1.Deployment{}
 
+	fmt.Println("This is rk value: ", rk)
+	fmt.Println("This is rk value: ", rk.Kind)
+
 	if rk.Kind == "Pod" {
 		if err := json.Unmarshal(raw, &pod); err != nil {
 			glog.Error("error deserializing pod")
@@ -160,7 +163,6 @@ func (ws *WebHookServer) serve(w http.ResponseWriter, r *http.Request) {
 		glog.Error("empty body")
 		http.Error(w, "empty body", http.StatusBadRequest)
 		return
-		glog.Info("Received request")
 	}
 
 	var admResponse *v1beta1.AdmissionResponse
@@ -169,6 +171,7 @@ func (ws *WebHookServer) serve(w http.ResponseWriter, r *http.Request) {
 		glog.Error("incorrect body")
 		http.Error(w, "incorrect body", http.StatusBadRequest)
 	}
+	glog.Info("Received request")
 	fmt.Println(r.URL.Path)
 	if r.URL.Path == "/mutate" {
 		admResponse = ws.mutate(&arRequest)
@@ -176,33 +179,6 @@ func (ws *WebHookServer) serve(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Path == "/validate" {
 		admResponse = ws.validate(&arRequest)
 	}
-
-	//raw := arRequest.Request.Object.Raw
-	//pod := v1.Pod{}
-	// deployment :=appsv1.Deployment{}
-	// // if err := json.Unmarshal(raw, &pod); err != nil {
-	// 	glog.Error("error deserializing pod")
-	// 	return
-	// }
-	// if err := json.Unmarshal(raw, &deployment); err != nil {
-	// 	glog.Error("error deserializing pod")
-	// 	return
-	// }
-	// if pod.ObjectMeta.Labels["team"] == reqLabel["team"]{
-	// 	return
-	// }
-	// if deployment.Labels["team"] == reqLabel["team"]{
-	// 	return
-	// }
-
-	// arResponse := v1beta1.AdmissionReview{
-	// 	Response: &v1beta1.AdmissionResponse{
-	// 		Allowed: false,
-	// 		Result: &metav1.Status{
-	// 			Message: "This label 'team' is not allowed !",
-	// 		},
-	// 	},
-	// }
 	admReview := v1beta1.AdmissionReview{}
 	if admResponse != nil {
 		admReview.Response = admResponse
