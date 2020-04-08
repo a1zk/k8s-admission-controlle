@@ -97,31 +97,20 @@ func (ws *WebHookServer) mutate(ar *v1beta1.AdmissionReview) *v1beta1.AdmissionR
 
 	fmt.Println("This is rk value: ", rk)
 	fmt.Println("This is rk value: ", rk.Kind)
-	
+
 	if err := json.Unmarshal(raw, &pod); err != nil {
 		glog.Error("error deserializing pod")
 		return &v1beta1.AdmissionResponse{
 			Result: &metav1.Status{
-			Message: err.Error(),
+				Message: err.Error(),
 			},
 		}
 	}
-	pl := pod.ObjectMeta.Labels
-	plBytes, err := createPatch(pl, reqLabel)
-	if err != nil {
+	if err := json.Unmarshal(raw, &deployment); err != nil {
 		return &v1beta1.AdmissionResponse{
 			Result: &metav1.Status{
-			Message: err.Error(),
+				Message: err.Error(),
 			},
-		}
-	}
-	return &v1beta1.AdmissionResponse{
-		Allowed: true,
-		Patch:   plBytes,
-		PatchType: func() *v1beta1.PatchType {
-			pt := v1beta1.PatchTypeJSONPatch
-			return &pt
-			}(),
 		}
 	}
 	dl := deployment.Labels
@@ -133,6 +122,24 @@ func (ws *WebHookServer) mutate(ar *v1beta1.AdmissionReview) *v1beta1.AdmissionR
 			},
 		}
 	}
+	pl := pod.ObjectMeta.Labels
+	plBytes, err := createPatch(pl, reqLabel)
+	if err != nil {
+		return &v1beta1.AdmissionResponse{
+			Result: &metav1.Status{
+				Message: err.Error(),
+			},
+		}
+	}
+	return &v1beta1.AdmissionResponse{
+		Allowed: true,
+		Patch:   plBytes,
+		PatchType: func() *v1beta1.PatchType {
+			pt := v1beta1.PatchTypeJSONPatch
+			return &pt
+		}(),
+	}
+
 	return &v1beta1.AdmissionResponse{
 		Allowed: true,
 		Patch:   dlBytes,
