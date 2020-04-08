@@ -90,7 +90,7 @@ func (ws *WebHookServer) validate(ar *v1beta1.AdmissionReview) *v1beta1.Admissio
 }
 
 func (ws *WebHookServer) mutate(ar *v1beta1.AdmissionReview) *v1beta1.AdmissionResponse {
-	rk := ar.Request.RequestKind
+	rk := ar.Request.Kind
 	raw := ar.Request.Object.Raw
 	pod := v1.Pod{}
 	deployment := appsv1.Deployment{}
