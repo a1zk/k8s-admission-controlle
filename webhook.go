@@ -51,8 +51,11 @@ func createPatch(availableLabel map[string]string, label map[string]string) ([]b
 func (ws *WebHookServer) validate(ar *v1beta1.AdmissionReview) *v1beta1.AdmissionResponse {
 
 	raw := ar.Request.Object.Raw
+	glog.Infof("AdmissionReview for Kind=%v, Namespace=%v Name=%v UID=%v patchOperation=%v UserInfo=%v",
+		ar.Request.Kind, ar.Request.Namespace, ar.Request.Name, ar.Request.UID, ar.Request.Operation, ar.Request.UserInfo)
 	pod := v1.Pod{}
 	deployment := appsv1.Deployment{}
+
 	if err := json.Unmarshal(raw, &pod); err != nil {
 		glog.Error("error deserializing pods")
 		return &v1beta1.AdmissionResponse{
@@ -95,7 +98,16 @@ func (ws *WebHookServer) mutate(ar *v1beta1.AdmissionReview) *v1beta1.AdmissionR
 	pod := v1.Pod{}
 	deployment := appsv1.Deployment{}
 
+	if pod.ObjectMeta.Labels["team"] == reqLabel["team"] || deployment.Labels["team"] == reqLabel["team"] {
+		return &v1beta1.AdmissionResponse{
+			Allowed: false,
+		}
+
+	}
+
 	fmt.Println("This is rk value: ", rk.Kind)
+	glog.Infof("AdmissionReview for Kind=%v, Namespace=%v Name=%v UID=%v patchOperation=%v UserInfo=%v",
+		ar.Request.Kind, ar.Request.Namespace, ar.Request.Name, ar.Request.UID, ar.Request.Operation, ar.Request.UserInfo)
 
 	if rk.Kind == "Pod" {
 		if err := json.Unmarshal(raw, &pod); err != nil {
