@@ -51,7 +51,7 @@ func createPatch(availableLabel map[string]string, label map[string]string) ([]b
 func (ws *WebHookServer) validate(ar *v1beta1.AdmissionReview) *v1beta1.AdmissionResponse {
 
 	raw := ar.Request.Object.Raw
-	glog.Infof("AdmissionReview for Kind=%v, Namespace=%v Name=%v UID=%v patchOperation=%v UserInfo=%v",
+	glog.Infof("VALIDATION:AdmissionReview for Kind=%v, Namespace=%v Name=%v UID=%v patchOperation=%v UserInfo=%v",
 		ar.Request.Kind, ar.Request.Namespace, ar.Request.Name, ar.Request.UID, ar.Request.Operation, ar.Request.UserInfo)
 	pod := v1.Pod{}
 	deployment := appsv1.Deployment{}
@@ -107,9 +107,9 @@ func (ws *WebHookServer) mutate(ar *v1beta1.AdmissionReview) *v1beta1.AdmissionR
 
 	}
 
-	fmt.Printf("MUTATION:This is %v value with lables %v\n", rk.Kind, pod.ObjectMeta.Labels)
-	fmt.Printf("MUTATION:This is %v value with lables %v \n", rk.Kind, deployment.Labels)
-	glog.Infof("AdmissionReview for Kind=%v, Namespace=%v Name=%v UID=%v patchOperation=%v UserInfo=%v",
+	fmt.Printf("MUTATION:This is %v value with lables %+v\n", rk.Kind, pod.ObjectMeta.Labels)
+	fmt.Printf("MUTATION:This is %v value with lables %+v \n", rk.Kind, deployment.Labels)
+	glog.Infof("MUTATION:AdmissionReview for Kind=%v, Namespace=%v Name=%v UID=%v patchOperation=%v UserInfo=%v",
 		ar.Request.Kind, ar.Request.Namespace, ar.Request.Name, ar.Request.UID, ar.Request.Operation, ar.Request.UserInfo)
 
 	if rk.Kind == "Pod" {
@@ -191,12 +191,10 @@ func (ws *WebHookServer) serve(w http.ResponseWriter, r *http.Request) {
 	fmt.Println(r.URL.Path)
 	if r.URL.Path == "/mutate" {
 		admResponse = ws.mutate(&ar)
-		fmt.Printf("MUTATION:Response UID %v\n", admResponse.UID)
 		fmt.Printf("MUTATION:Response Allowed: %v \n", admResponse.Allowed)
 	}
 	if r.URL.Path == "/validate" {
 		admResponse = ws.validate(&ar)
-		fmt.Printf("VALIDATION:Response UID %v\n", admResponse.UID)
 		fmt.Printf("VALIDATION:Response Allowed: %v \n", admResponse.Allowed)
 	}
 	admReview := v1beta1.AdmissionReview{}
