@@ -100,7 +100,7 @@ func (ws *WebHookServer) mutate(ar *v1beta1.AdmissionReview) *v1beta1.AdmissionR
 
 	if pod.ObjectMeta.Labels["team"] == reqLabel["team"] || deployment.Labels["team"] == reqLabel["team"] {
 		return &v1beta1.AdmissionResponse{
-			Allowed: false,
+			Allowed: true,
 		}
 
 	}
