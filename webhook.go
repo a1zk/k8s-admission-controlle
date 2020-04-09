@@ -55,8 +55,8 @@ func (ws *WebHookServer) validate(ar *v1beta1.AdmissionReview) *v1beta1.Admissio
 		ar.Request.Kind, ar.Request.Namespace, ar.Request.Name, ar.Request.UID, ar.Request.Operation, ar.Request.UserInfo)
 	pod := v1.Pod{}
 	deployment := appsv1.Deployment{}
-	fmt.Printf("VALIDATION:This is %v value with lables ", pod.ObjectMeta.Labels)
-	fmt.Printf("VALIDATION:This is %v value with lables ", deployment.Labels)
+	fmt.Printf("VALIDATION:This is %v value with lables \n", pod.ObjectMeta.Labels)
+	fmt.Printf("VALIDATION:This is %v value with lables \n", deployment.Labels)
 	fmt.Printf("VALIDATION:Response UID %v", ar.Response.UID)
 	fmt.Printf("VALIDATION:Response Allowed: %v", ar.Response.Allowed)
 
@@ -109,8 +109,8 @@ func (ws *WebHookServer) mutate(ar *v1beta1.AdmissionReview) *v1beta1.AdmissionR
 
 	}
 
-	fmt.Printf("MUTATION:This is %v value with lables %v", rk.Kind, pod.ObjectMeta.Labels)
-	fmt.Printf("MUTATION:This is %v value with lables %v", rk.Kind, deployment.Labels)
+	fmt.Printf("MUTATION:This is %v value with lables %v\n", rk.Kind, pod.ObjectMeta.Labels)
+	fmt.Printf("MUTATION:This is %v value with lables %v \n", rk.Kind, deployment.Labels)
 	fmt.Printf("MUTATION:Response UID %v", ar.Response.UID)
 	fmt.Printf("MUTATION:Response Allowed: %v", ar.Response.Allowed)
 	glog.Infof("AdmissionReview for Kind=%v, Namespace=%v Name=%v UID=%v patchOperation=%v UserInfo=%v",
@@ -195,9 +195,13 @@ func (ws *WebHookServer) serve(w http.ResponseWriter, r *http.Request) {
 	fmt.Println(r.URL.Path)
 	if r.URL.Path == "/mutate" {
 		admResponse = ws.mutate(&ar)
+		fmt.Printf("MUTATION:Response UID %v\n", admResponse.UID)
+		fmt.Printf("MUTATION:Response Allowed: %v \n", admResponse.Allowed)
 	}
 	if r.URL.Path == "/validate" {
 		admResponse = ws.validate(&ar)
+		fmt.Printf("VALIDATION:Response UID %v\n", admResponse.UID)
+		fmt.Printf("VALIDATION:Response Allowed: %v \n", admResponse.Allowed)
 	}
 	admReview := v1beta1.AdmissionReview{}
 	if admResponse != nil {
