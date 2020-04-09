@@ -55,6 +55,10 @@ func (ws *WebHookServer) validate(ar *v1beta1.AdmissionReview) *v1beta1.Admissio
 		ar.Request.Kind, ar.Request.Namespace, ar.Request.Name, ar.Request.UID, ar.Request.Operation, ar.Request.UserInfo)
 	pod := v1.Pod{}
 	deployment := appsv1.Deployment{}
+	fmt.Printf("VALIDATION:This is %v value with lables ", pod.ObjectMeta.Labels)
+	fmt.Printf("VALIDATION:This is %v value with lables ", deployment.Labels)
+	fmt.Printf("VALIDATION:Response UID %v", ar.Response.UID)
+	fmt.Printf("VALIDATION:Response Allowed: %v", ar.Response.Allowed)
 
 	if err := json.Unmarshal(raw, &pod); err != nil {
 		glog.Error("error deserializing pods")
@@ -105,7 +109,10 @@ func (ws *WebHookServer) mutate(ar *v1beta1.AdmissionReview) *v1beta1.AdmissionR
 
 	}
 
-	fmt.Println("This is rk value: ", rk.Kind)
+	fmt.Printf("MUTATION:This is %v value with lables %v", rk.Kind, pod.ObjectMeta.Labels)
+	fmt.Printf("MUTATION:This is %v value with lables %v", rk.Kind, deployment.Labels)
+	fmt.Printf("MUTATION:Response UID %v", ar.Response.UID)
+	fmt.Printf("MUTATION:Response Allowed: %v", ar.Response.Allowed)
 	glog.Infof("AdmissionReview for Kind=%v, Namespace=%v Name=%v UID=%v patchOperation=%v UserInfo=%v",
 		ar.Request.Kind, ar.Request.Namespace, ar.Request.Name, ar.Request.UID, ar.Request.Operation, ar.Request.UserInfo)
 
@@ -179,30 +186,24 @@ func (ws *WebHookServer) serve(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var admResponse *v1beta1.AdmissionResponse
-	arRequest := v1beta1.AdmissionReview{}
-	if err := json.Unmarshal(body, &arRequest); err != nil {
+	ar := v1beta1.AdmissionReview{}
+	if err := json.Unmarshal(body, &ar); err != nil {
 		glog.Error("incorrect body")
 		http.Error(w, "incorrect body", http.StatusBadRequest)
 	}
 	glog.Info("Received request")
 	fmt.Println(r.URL.Path)
 	if r.URL.Path == "/mutate" {
-		admResponse = ws.mutate(&arRequest)
-		fmt.Println(admResponse.Size())
-		fmt.Println(admResponse.String())
-		fmt.Println(admResponse.XXX_Size())
+		admResponse = ws.mutate(&ar)
 	}
 	if r.URL.Path == "/validate" {
-		admResponse = ws.validate(&arRequest)
-		fmt.Println(admResponse.Size())
-		fmt.Println(admResponse.String())
-		fmt.Println(admResponse.XXX_Size())
+		admResponse = ws.validate(&ar)
 	}
 	admReview := v1beta1.AdmissionReview{}
 	if admResponse != nil {
 		admReview.Response = admResponse
-		if arRequest.Request != nil {
-			admReview.Response.UID = arRequest.Request.UID
+		if ar.Request != nil {
+			admReview.Response.UID = ar.Request.UID
 		}
 	}
 	resp, err := json.Marshal(admReview)
