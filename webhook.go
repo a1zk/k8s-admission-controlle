@@ -55,8 +55,6 @@ func (ws *WebHookServer) validate(ar *v1beta1.AdmissionReview) *v1beta1.Admissio
 		ar.Request.Kind, ar.Request.Namespace, ar.Request.Name, ar.Request.UID, ar.Request.Operation, ar.Request.UserInfo)
 	pod := v1.Pod{}
 	deployment := appsv1.Deployment{}
-	fmt.Printf("VALIDATION:This is %v value with lables \n", pod.ObjectMeta.Labels)
-	fmt.Printf("VALIDATION:This is %v value with lables \n", deployment.Labels)
 
 	if err := json.Unmarshal(raw, &pod); err != nil {
 		glog.Error("error deserializing pods")
@@ -85,6 +83,8 @@ func (ws *WebHookServer) validate(ar *v1beta1.AdmissionReview) *v1beta1.Admissio
 			Allowed: true,
 		}
 	}
+	fmt.Printf("VALIDATION:This is %v value with lables \n", pod.ObjectMeta.Labels)
+	fmt.Printf("VALIDATION:This is %v value with lables \n", deployment.Labels)
 
 	return &v1beta1.AdmissionResponse{
 		Allowed: false,
@@ -100,15 +100,6 @@ func (ws *WebHookServer) mutate(ar *v1beta1.AdmissionReview) *v1beta1.AdmissionR
 	pod := v1.Pod{}
 	deployment := appsv1.Deployment{}
 
-	if pod.ObjectMeta.Labels["team"] == reqLabel["team"] || deployment.Labels["team"] == reqLabel["team"] {
-		return &v1beta1.AdmissionResponse{
-			Allowed: true,
-		}
-
-	}
-
-	fmt.Printf("MUTATION:This is %v value with lables %+v\n", rk.Kind, pod.ObjectMeta.Labels)
-	fmt.Printf("MUTATION:This is %v value with lables %+v \n", rk.Kind, deployment.Labels)
 	glog.Infof("MUTATION:AdmissionReview for Kind=%v, Namespace=%v Name=%v UID=%v patchOperation=%v UserInfo=%v",
 		ar.Request.Kind, ar.Request.Namespace, ar.Request.Name, ar.Request.UID, ar.Request.Operation, ar.Request.UserInfo)
 
@@ -122,6 +113,11 @@ func (ws *WebHookServer) mutate(ar *v1beta1.AdmissionReview) *v1beta1.AdmissionR
 			}
 		}
 		pl := pod.ObjectMeta.Labels
+		if pl["team"] == reqLabel["team"] {
+			return &v1beta1.AdmissionResponse{
+				Allowed: true,
+			}
+		}
 		plBytes, err := createPatch(pl, reqLabel)
 		if err != nil {
 			return &v1beta1.AdmissionResponse{
@@ -147,6 +143,11 @@ func (ws *WebHookServer) mutate(ar *v1beta1.AdmissionReview) *v1beta1.AdmissionR
 			}
 		}
 		dl := deployment.Labels
+		if dl["team"] == reqLabel["team"] {
+			return &v1beta1.AdmissionResponse{
+				Allowed: true,
+			}
+		}
 		dlBytes, err := createPatch(dl, reqLabel)
 		if err != nil {
 			return &v1beta1.AdmissionResponse{
