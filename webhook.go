@@ -95,6 +95,7 @@ func (ws *WebHookServer) validate(ar *v1beta1.AdmissionReview) *v1beta1.Admissio
 }
 
 func (ws *WebHookServer) mutate(ar *v1beta1.AdmissionReview) *v1beta1.AdmissionResponse {
+	var availableLabel map[string]string
 	rk := ar.Request.Kind
 	raw := ar.Request.Object.Raw
 	pod := v1.Pod{}
@@ -103,7 +104,8 @@ func (ws *WebHookServer) mutate(ar *v1beta1.AdmissionReview) *v1beta1.AdmissionR
 	glog.Infof("MUTATION:AdmissionReview for Kind=%v, Namespace=%v Name=%v UID=%v patchOperation=%v UserInfo=%v",
 		ar.Request.Kind, ar.Request.Namespace, ar.Request.Name, ar.Request.UID, ar.Request.Operation, ar.Request.UserInfo)
 
-	if rk.Kind == "Pod" {
+	switch rk.Kind {
+	case "Pod":
 		if err := json.Unmarshal(raw, &pod); err != nil {
 			glog.Error("error deserializing pod")
 			return &v1beta1.AdmissionResponse{
@@ -112,29 +114,8 @@ func (ws *WebHookServer) mutate(ar *v1beta1.AdmissionReview) *v1beta1.AdmissionR
 				},
 			}
 		}
-		pl := pod.ObjectMeta.Labels
-		if pl["team"] == reqLabel["team"] {
-			return &v1beta1.AdmissionResponse{
-				Allowed: true,
-			}
-		}
-		plBytes, err := createPatch(pl, reqLabel)
-		if err != nil {
-			return &v1beta1.AdmissionResponse{
-				Result: &metav1.Status{
-					Message: err.Error(),
-				},
-			}
-		}
-		return &v1beta1.AdmissionResponse{
-			Allowed: true,
-			Patch:   plBytes,
-			PatchType: func() *v1beta1.PatchType {
-				pt := v1beta1.PatchTypeJSONPatch
-				return &pt
-			}(),
-		}
-	} else {
+		availableLabel = pod.ObjectMeta.Labels
+	case "Deployment":
 		if err := json.Unmarshal(raw, &deployment); err != nil {
 			return &v1beta1.AdmissionResponse{
 				Result: &metav1.Status{
@@ -142,31 +123,30 @@ func (ws *WebHookServer) mutate(ar *v1beta1.AdmissionReview) *v1beta1.AdmissionR
 				},
 			}
 		}
-		dl := deployment.Labels
-		if dl["team"] == reqLabel["team"] {
-			return &v1beta1.AdmissionResponse{
-				Allowed: true,
-			}
-		}
-		dlBytes, err := createPatch(dl, reqLabel)
-		if err != nil {
-			return &v1beta1.AdmissionResponse{
-				Result: &metav1.Status{
-					Message: err.Error(),
-				},
-			}
-		}
-
+		availableLabel = deployment.Labels
+	}
+	if pod.ObjectMeta.Labels["team"] == reqLabel["team"] || deployment.Labels["team"] == reqLabel["team"] {
 		return &v1beta1.AdmissionResponse{
 			Allowed: true,
-			Patch:   dlBytes,
-			PatchType: func() *v1beta1.PatchType {
-				pt := v1beta1.PatchTypeJSONPatch
-				return &pt
-			}(),
+		}
+	}
+	pBytes, err := createPatch(availableLabel, reqLabel)
+	if err != nil {
+		return &v1beta1.AdmissionResponse{
+			Result: &metav1.Status{
+				Message: err.Error(),
+			},
 		}
 	}
 
+	return &v1beta1.AdmissionResponse{
+		Allowed: true,
+		Patch:   pBytes,
+		PatchType: func() *v1beta1.PatchType {
+			pt := v1beta1.PatchTypeJSONPatch
+			return &pt
+		}(),
+	}
 }
 
 func (ws *WebHookServer) serve(w http.ResponseWriter, r *http.Request) {
