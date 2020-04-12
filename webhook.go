@@ -125,11 +125,11 @@ func (ws *WebHookServer) mutate(ar *v1beta1.AdmissionReview) *v1beta1.AdmissionR
 		}
 		availableLabel = deployment.Labels
 	}
-	if pod.ObjectMeta.Labels["team"] == reqLabel["team"] || deployment.Labels["team"] == reqLabel["team"] {
-		return &v1beta1.AdmissionResponse{
-			Allowed: true,
-		}
-	}
+	//if pod.ObjectMeta.Labels["team"] == reqLabel["team"] || deployment.Labels["team"] == reqLabel["team"] {
+	//	return &v1beta1.AdmissionResponse{
+	//		Allowed: true,
+	//	}
+	//}
 	pBytes, err := createPatch(availableLabel, reqLabel)
 	if err != nil {
 		return &v1beta1.AdmissionResponse{
