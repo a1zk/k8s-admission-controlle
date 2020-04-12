@@ -28,23 +28,17 @@ type patchOperation struct {
 }
 
 func updLabel(target map[string]string, added map[string]string) (patch []patchOperation) {
+	values := make(map[string]string)
 	for key, value := range added {
 		if target == nil || target[key] == "" {
-			values := make(map[string]string)
 			values[key] = value
-			patch = append(patch, patchOperation{
-				Op:    "add",
-				Path:  "/metadata/labels",
-				Value: values,
-			})
-		} else {
-			patch = append(patch, patchOperation{
-				Op:    "test",
-				Path:  "/metadata/labels",
-				Value: added,
-			})
 		}
 	}
+	patch = append(patch, patchOperation{
+		Op:    "add",
+		Path:  "/metadata/labels",
+		Value: values,
+	})
 	return patch
 }
 func createPatch(availableLabel map[string]string, label map[string]string) ([]byte, error) {
@@ -55,8 +49,15 @@ func createPatch(availableLabel map[string]string, label map[string]string) ([]b
 	return json.Marshal(patch)
 }
 
-//func reqMutation()bool{
-//}
+func reqMutation(m map[string]string) bool {
+	if _, ok := m["team"]; ok {
+		glog.V(3).Infof("skipping mutation, spanContext annotation already exists")
+		return false
+	}
+
+	return true
+
+}
 func (ws *WebHookServer) validate(ar *v1beta1.AdmissionReview) *v1beta1.AdmissionResponse {
 
 	raw := ar.Request.Object.Raw
@@ -134,11 +135,11 @@ func (ws *WebHookServer) mutate(ar *v1beta1.AdmissionReview) *v1beta1.AdmissionR
 		}
 		availableLabel = deployment.Labels
 	}
-	//if pod.ObjectMeta.Labels["team"] == reqLabel["team"] || deployment.Labels["team"] == reqLabel["team"] {
-	//	return &v1beta1.AdmissionResponse{
-	//		Allowed: true,
-	//	}
-	//}
+	if !reqMutation(availableLabel) {
+		return &v1beta1.AdmissionResponse{
+			Allowed: true,
+		}
+	}
 	pBytes, err := createPatch(availableLabel, reqLabel)
 	if err != nil {
 		return &v1beta1.AdmissionResponse{
